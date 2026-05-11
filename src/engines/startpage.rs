@@ -160,7 +160,7 @@ mod tests {
     #[ignore]
     async fn test_live_search() {
         let client = crate::engines::build_http_client().unwrap();
-        let results = search(&client, "rust programming language", 5).await.unwrap();
+        let results = search(&client, "rust programming language", 10).await.unwrap();
 
         println!("Got {} results:", results.len());
         for r in &results {

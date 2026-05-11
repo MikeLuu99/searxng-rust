@@ -226,13 +226,14 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_live_aggregation() {
-        use crate::engines::{BraveEngine, DuckDuckGoEngine};
+        use crate::engines::{BraveEngine, DuckDuckGoEngine, StartpageEngine};
 
         let client = Arc::new(crate::engines::build_http_client().unwrap());
 
         let engines: Vec<Arc<dyn SearchEngine>> = vec![
             Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
             Arc::new(BraveEngine { client: Arc::clone(&client) }),
+            Arc::new(StartpageEngine { client: Arc::clone(&client) }),
         ];
 
         let (successes, failures) = query_all_engines(&engines, "rust programming language", 10).await;
