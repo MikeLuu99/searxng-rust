@@ -118,6 +118,8 @@ Live tests are marked `#[ignore]` so they don't run in CI by default. Run them m
 
 A ratatui-based TUI is available as a separate workspace crate. See [tui/README.md](tui/README.md) for full usage and keybinds.
 
+![stx TUI](assets/tui_screenshots.png)
+
 ```bash
 cargo run -p search-tui
 
