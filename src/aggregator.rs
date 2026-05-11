@@ -222,4 +222,48 @@ mod tests {
 
         assert_eq!(results[0].snippet, Some("A useful snippet.".to_string()));
     }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_live_aggregation() {
+        use crate::engines::{BraveEngine, DuckDuckGoEngine};
+
+        let client = Arc::new(crate::engines::build_http_client().unwrap());
+
+        let engines: Vec<Arc<dyn SearchEngine>> = vec![
+            Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
+            Arc::new(BraveEngine { client: Arc::clone(&client) }),
+        ];
+
+        let (successes, failures) = query_all_engines(&engines, "rust programming language", 10).await;
+
+        println!("Engines succeeded: {}", successes.len());
+        println!("Engines failed:    {}", failures.len());
+        for (name, err) in &failures {
+            println!("  FAILED {name}: {err}");
+        }
+
+        let results = aggregate(successes, 10);
+
+        println!("\nTop {} aggregated results:", results.len());
+        for (i, r) in results.iter().enumerate() {
+            println!(
+                "\n  #{} [{:.4}] [{}] {}",
+                i + 1,
+                r.score,
+                r.engines.join(", "),
+                r.title
+            );
+            println!("      {}", r.url);
+            if let Some(s) = &r.snippet {
+                println!("      snippet: {}", &s[..s.len().min(100)]);
+            }
+        }
+
+        assert!(!results.is_empty(), "expected aggregated results");
+        // At least one result should appear in both engines — the web agrees on something
+        let cross_engine = results.iter().filter(|r| r.engines.len() > 1).count();
+        println!("\nResults from both engines: {cross_engine}");
+        assert!(cross_engine > 0, "expected at least one result from both engines");
+    }
 }
