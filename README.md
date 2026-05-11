@@ -114,6 +114,14 @@ cargo test -- --ignored test_live
 
 Live tests are marked `#[ignore]` so they don't run in CI by default. Run them manually to verify HTML selectors still work against the real sites.
 
+## Terminal UI
+
+A ratatui-based TUI is available as a separate workspace crate. See [tui/README.md](tui/README.md) for full usage and keybinds.
+
+```bash
+cargo run -p search-tui
+```
+
 ## Adding a new search engine
 
 1. Create `src/engines/<name>.rs`
