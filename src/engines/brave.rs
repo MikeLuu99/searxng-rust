@@ -1,48 +1,48 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, Context};
 use reqwest::Client;
-use scraper::{Html, Selector};
+use scraper::Html;
 
+use crate::error::EngineError;
 use crate::models::SearchResult;
 
+const ENGINE: &str = "brave";
 const BRAVE_URL: &str = "https://search.brave.com/search";
+
+// Conservative limit so a slow Brave response doesn't block the whole fan-out.
 const TIMEOUT_MS: u64 = 8_000;
 
-pub async fn search(client: &Client, query: &str, max_results: usize) -> anyhow::Result<Vec<SearchResult>> {
+pub async fn search(client: &Client, query: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineError> {
     let response = tokio::time::timeout(
         Duration::from_millis(TIMEOUT_MS),
-        client
-            .get(BRAVE_URL)
-            .query(&[("q", query)])
-            .send(),
+        client.get(BRAVE_URL).query(&[("q", query)]).send(),
     )
     .await
-    .context("Brave request timed out")?
-    .context("Brave HTTP request failed")?;
+    .map_err(|_| EngineError::Timeout { engine: ENGINE })?
+    .map_err(|e| EngineError::Http { engine: ENGINE, source: e })?;
 
     if !response.status().is_success() {
-        return Err(anyhow!("Brave returned status {}", response.status()));
+        return Err(EngineError::BadStatus { engine: ENGINE, status: response.status().as_u16() });
     }
 
-    let body = response.text().await.context("failed to read Brave response body")?;
+    let body = response.text().await.map_err(|e| EngineError::Http { engine: ENGINE, source: e })?;
 
     parse(&body, max_results)
 }
 
-fn parse(html: &str, max_results: usize) -> anyhow::Result<Vec<SearchResult>> {
+fn parse(html: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineError> {
     let document = Html::parse_document(html);
 
     // data-type="web" is stable across Brave's Svelte rebuilds; the class names
     // on the same element contain hashed suffixes (e.g. svelte-jmfu5f) that change
     // with every frontend deploy, so we anchor on the data attribute instead.
-    let result_sel  = Selector::parse("div[data-type='web']").map_err(|e| anyhow!("selector error: {e:?}"))?;
+    let result_sel  = sel(ENGINE, "div[data-type='web']")?;
 
     // a.l1 is Brave's consistent link class for the primary result anchor.
     // The href on this element is the direct destination URL (no redirect wrapper).
-    let link_sel    = Selector::parse("a.l1").map_err(|e| anyhow!("selector error: {e:?}"))?;
-    let title_sel   = Selector::parse("div.search-snippet-title").map_err(|e| anyhow!("selector error: {e:?}"))?;
-    let snippet_sel = Selector::parse("div.generic-snippet").map_err(|e| anyhow!("selector error: {e:?}"))?;
+    let link_sel    = sel(ENGINE, "a.l1")?;
+    let title_sel   = sel(ENGINE, "div.search-snippet-title")?;
+    let snippet_sel = sel(ENGINE, "div.generic-snippet")?;
 
     let mut results = Vec::new();
 
@@ -65,15 +65,17 @@ fn parse(html: &str, max_results: usize) -> anyhow::Result<Vec<SearchResult>> {
             .map(|el| el.text().collect::<String>().trim().to_string())
             .filter(|s| !s.is_empty());
 
-        results.push(SearchResult {
-            title,
-            url,
-            snippet,
-            source_engine: "brave".to_string(),
-        });
+        results.push(SearchResult { title, url, snippet, source_engine: ENGINE.to_string() });
     }
 
     Ok(results)
+}
+
+fn sel(engine: &'static str, s: &str) -> Result<scraper::Selector, EngineError> {
+    scraper::Selector::parse(s).map_err(|e| EngineError::ParseFailed {
+        engine,
+        reason: format!("invalid selector '{s}': {e:?}"),
+    })
 }
 
 #[cfg(test)]

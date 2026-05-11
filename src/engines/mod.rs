@@ -1,8 +1,68 @@
-pub mod duckduckgo;
 pub mod brave;
+pub mod duckduckgo;
 
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
 use std::time::Duration;
-use reqwest::{Client, header::{self, HeaderMap, HeaderValue}};
+
+use reqwest::{
+    Client,
+    header::{self, HeaderMap, HeaderValue},
+};
+
+use crate::error::EngineError;
+use crate::models::SearchResult;
+
+// A heap-allocated future that is Send — required for dyn trait + tokio multi-thread.
+// Using BoxFuture keeps the trait object-safe; impl Future in trait methods is not.
+pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
+
+pub trait SearchEngine: Send + Sync {
+    fn name(&self) -> &'static str;
+
+    fn search<'a>(
+        &'a self,
+        query: &'a str,
+        max_results: usize,
+    ) -> BoxFuture<'a, Result<Vec<SearchResult>, EngineError>>;
+}
+
+pub struct DuckDuckGoEngine {
+    pub client: Arc<Client>,
+}
+
+pub struct BraveEngine {
+    pub client: Arc<Client>,
+}
+
+impl SearchEngine for DuckDuckGoEngine {
+    fn name(&self) -> &'static str {
+        "duckduckgo"
+    }
+
+    fn search<'a>(
+        &'a self,
+        query: &'a str,
+        max_results: usize,
+    ) -> BoxFuture<'a, Result<Vec<SearchResult>, EngineError>> {
+        Box::pin(duckduckgo::search(&self.client, query, max_results))
+    }
+}
+
+impl SearchEngine for BraveEngine {
+    fn name(&self) -> &'static str {
+        "brave"
+    }
+
+    fn search<'a>(
+        &'a self,
+        query: &'a str,
+        max_results: usize,
+    ) -> BoxFuture<'a, Result<Vec<SearchResult>, EngineError>> {
+        Box::pin(brave::search(&self.client, query, max_results))
+    }
+}
 
 // Mimic a real browser as closely as possible to avoid bot-detection rejections.
 // These headers are what Chrome 124 sends on a fresh navigation.
@@ -36,7 +96,7 @@ pub fn build_http_client() -> anyhow::Result<Client> {
 
     let client = Client::builder()
         .default_headers(headers)
-        .cookie_store(true) // DDG sets a consent cookie on first request; persist it
+        .cookie_store(true)
         .gzip(true)
         .brotli(true)
         // Hard socket-level ceiling; per-query timeouts are applied separately
