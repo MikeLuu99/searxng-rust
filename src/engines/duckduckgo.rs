@@ -40,7 +40,9 @@ fn parse(html: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineErro
 
     let mut results = Vec::new();
 
-    for element in document.select(&result_sel).take(max_results) {
+    for element in document.select(&result_sel) {
+        if results.len() >= max_results { break; }
+
         let Some(title_el) = element.select(&title_sel).next() else { continue };
 
         let title = title_el.text().collect::<String>().trim().to_string();

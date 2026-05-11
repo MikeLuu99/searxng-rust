@@ -6,16 +6,17 @@ use scraper::Html;
 use crate::error::EngineError;
 use crate::models::SearchResult;
 
-const ENGINE: &str = "brave";
-const BRAVE_URL: &str = "https://search.brave.com/search";
-
-// Conservative limit so a slow Brave response doesn't block the whole fan-out.
+const ENGINE: &str = "startpage";
+const STARTPAGE_URL: &str = "https://www.startpage.com/search";
 const TIMEOUT_MS: u64 = 8_000;
 
 pub async fn search(client: &Client, query: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineError> {
     let response = tokio::time::timeout(
         Duration::from_millis(TIMEOUT_MS),
-        client.get(BRAVE_URL).query(&[("q", query)]).send(),
+        client
+            .get(STARTPAGE_URL)
+            .query(&[("q", query)])
+            .send(),
     )
     .await
     .map_err(|_| EngineError::Timeout { engine: ENGINE })?
@@ -33,16 +34,16 @@ pub async fn search(client: &Client, query: &str, max_results: usize) -> Result<
 fn parse(html: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineError> {
     let document = Html::parse_document(html);
 
-    // data-type="web" is stable across Brave's Svelte rebuilds; the class names
-    // on the same element contain hashed suffixes (e.g. svelte-jmfu5f) that change
-    // with every frontend deploy, so we anchor on the data attribute instead.
-    let result_sel  = sel(ENGINE, "div[data-type='web']")?;
+    // Startpage uses Emotion CSS-in-JS — class names have unstable hashes appended
+    // (e.g. "result css-o7i03b"). The "result" class is the stable anchor;
+    // we select all divs whose class list contains exactly "result" as one token.
+    let result_sel  = sel(ENGINE, "div.result")?;
 
-    // a.l1 is Brave's consistent link class for the primary result anchor.
-    // The href on this element is the direct destination URL (no redirect wrapper).
-    let link_sel    = sel(ENGINE, "a.l1")?;
-    let title_sel   = sel(ENGINE, "div.search-snippet-title")?;
-    let snippet_sel = sel(ENGINE, "div.generic-snippet")?;
+    // a.result-title holds both the href (destination URL) and wraps the h2 title.
+    // Startpage links directly — no redirect wrapper.
+    let link_sel    = sel(ENGINE, "a.result-title")?;
+    let title_sel   = sel(ENGINE, "h2.wgl-title")?;
+    let snippet_sel = sel(ENGINE, "p.description")?;
 
     let mut results = Vec::new();
 
@@ -86,38 +87,38 @@ mod tests {
     #[test]
     fn test_parse_extracts_results() {
         let html = r#"
-            <div class="snippet" data-type="web">
-                <a class="l1" href="https://example.com">
-                    <div class="search-snippet-title">Example Site</div>
+            <div class="result css-o7i03b">
+                <a class="result-title result-link css-abc" href="https://rust-lang.org/">
+                    <h2 class="wgl-title css-xyz">Rust Programming Language</h2>
                 </a>
-                <div class="generic-snippet">An example website for testing.</div>
+                <p class="description css-def">A fast, memory-safe language.</p>
             </div>
-            <div class="snippet" data-type="web">
-                <a class="l1" href="https://rust-lang.org">
-                    <div class="search-snippet-title">Rust Language</div>
+            <div class="result css-o7i03b">
+                <a class="result-title result-link css-abc" href="https://en.wikipedia.org/wiki/Rust">
+                    <h2 class="wgl-title css-xyz">Rust - Wikipedia</h2>
                 </a>
-                <div class="generic-snippet">Systems programming language.</div>
+                <p class="description css-def">Rust is a general-purpose programming language.</p>
             </div>
         "#;
 
         let results = parse(html, 10).unwrap();
         assert_eq!(results.len(), 2);
-        assert_eq!(results[0].title, "Example Site");
-        assert_eq!(results[0].url, "https://example.com");
-        assert_eq!(results[1].url, "https://rust-lang.org");
+        assert_eq!(results[0].title, "Rust Programming Language");
+        assert_eq!(results[0].url, "https://rust-lang.org/");
+        assert_eq!(results[1].url, "https://en.wikipedia.org/wiki/Rust");
         assert!(results[0].snippet.is_some());
     }
 
     #[test]
     fn test_parse_respects_max_results() {
-        let result_html = r#"
-            <div class="snippet" data-type="web">
-                <a class="l1" href="https://example.com">
-                    <div class="search-snippet-title">T</div>
+        let block = r#"
+            <div class="result css-o7i03b">
+                <a class="result-title" href="https://example.com">
+                    <h2 class="wgl-title">Title</h2>
                 </a>
             </div>
         "#;
-        let html = result_html.repeat(5);
+        let html = block.repeat(5);
         let results = parse(&html, 2).unwrap();
         assert_eq!(results.len(), 2);
     }
@@ -125,9 +126,9 @@ mod tests {
     #[test]
     fn test_parse_skips_missing_snippet() {
         let html = r#"
-            <div class="snippet" data-type="web">
-                <a class="l1" href="https://example.com">
-                    <div class="search-snippet-title">Title</div>
+            <div class="result css-o7i03b">
+                <a class="result-title" href="https://example.com">
+                    <h2 class="wgl-title">Title</h2>
                 </a>
             </div>
         "#;
@@ -139,14 +140,14 @@ mod tests {
     #[test]
     fn test_parse_skips_non_http_urls() {
         let html = r#"
-            <div class="snippet" data-type="web">
-                <a class="l1" href="/relative">
-                    <div class="search-snippet-title">Relative</div>
+            <div class="result css-o7i03b">
+                <a class="result-title" href="/relative/path">
+                    <h2 class="wgl-title">Relative</h2>
                 </a>
             </div>
-            <div class="snippet" data-type="web">
-                <a class="l1" href="https://valid.com">
-                    <div class="search-snippet-title">Valid</div>
+            <div class="result css-o7i03b">
+                <a class="result-title" href="https://valid.com">
+                    <h2 class="wgl-title">Valid</h2>
                 </a>
             </div>
         "#;
@@ -169,7 +170,7 @@ mod tests {
             }
         }
 
-        assert!(!results.is_empty(), "expected at least one result from Brave");
+        assert!(!results.is_empty(), "expected at least one result from Startpage");
         for r in &results {
             assert!(!r.title.is_empty());
             assert!(r.url.starts_with("http"));
