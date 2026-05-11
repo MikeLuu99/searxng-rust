@@ -98,10 +98,10 @@ fn ui(frame: &mut Frame, app: &mut App) {
         None
     };
     let help_text = match &app.mode {
-        Mode::Input => "  Enter: search   Esc: quit",
-        Mode::Loading => "  Searching…",
-        Mode::Browse => "  ↑↓ / jk: navigate   l/Enter: open in browser   h/: new search   q: quit",
-        Mode::Error(_) => "  h or /: new search   q: quit",
+        Mode::Input   => "  enter:search  esc:quit",
+        Mode::Loading => "  searching…",
+        Mode::Browse  => "  jk:move  l/enter:open  h/:search  q:quit",
+        Mode::Error(_) => "  h/:search  q:quit",
     };
 
     let area = frame.area();
@@ -175,7 +175,7 @@ fn ui(frame: &mut Frame, app: &mut App) {
                     lines.push(Line::from(vec![
                         Span::raw("     "),
                         Span::styled(
-                            s[..s.len().min(100)].to_string(),
+                            s.char_indices().nth(100).map_or(s.as_str(), |(i, _)| &s[..i]).to_string(),
                             Style::default().fg(Color::Gray),
                         ),
                     ]));

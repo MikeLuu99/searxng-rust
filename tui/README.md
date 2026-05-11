@@ -8,6 +8,8 @@ From the workspace root:
 
 ```bash
 cargo run -p search-tui
+# or after installing:
+searchx
 ```
 
 ## Usage
