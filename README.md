@@ -19,7 +19,7 @@ A SearXNG-style metadata search engine written in Rust. Fans out queries to mult
 ## Installation
 
 ```bash
-git clone https://github.com/MikeLuu99/searchxng-rust
+git clone https://github.com/MikeLuu99/searxng-rust
 cd metadata-search-engine-rs
 cargo build --release
 ```
@@ -123,7 +123,10 @@ cargo run -p search-tui
 
 # or install as a global command:
 cargo install --path tui
-searchx
+stx
+
+# or with an immediate query:
+stx rust vs go
 ```
 
 ## Adding a new search engine

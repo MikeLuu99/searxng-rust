@@ -331,6 +331,26 @@ async fn main() -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel::<Result<Vec<AggregatedResult>, String>>(1);
     let mut app = App::new();
 
+    // If the user passed a query as CLI args (e.g. `stx rust vs go`), kick off
+    // the search immediately instead of waiting for input.
+    let initial_query: String = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+    if !initial_query.trim().is_empty() {
+        app.input = initial_query.trim().to_string();
+        app.mode = Mode::Loading;
+        let tx2 = tx.clone();
+        let engines2 = engines.clone();
+        let query = app.input.clone();
+        tokio::spawn(async move {
+            let (successes, _) = query_all_engines(&engines2, &query, 10).await;
+            let result = if successes.is_empty() {
+                Err("All engines failed to respond.".to_string())
+            } else {
+                Ok(aggregate(successes, 10))
+            };
+            let _ = tx2.send(result).await;
+        });
+    }
+
     let result = run(&mut terminal, &mut app, &mut rx, tx, engines).await;
 
     // Always restore the terminal, even on error.
