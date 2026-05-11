@@ -19,7 +19,7 @@ A SearXNG-style metadata search engine written in Rust. Fans out queries to mult
 ## Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/MikeLuu99/searxng-rust
 cd metadata-search-engine-rs
 cargo build --release
 ```
@@ -32,12 +32,12 @@ cargo run --release
 
 The server starts on port 3000 by default. Override with environment variables:
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | TCP port to listen on |
-| `ENGINE_TIMEOUT_MS` | `8000` | Per-engine request timeout (ms) |
-| `RESULTS_PER_ENGINE` | `10` | Results fetched from each engine |
-| `MAX_RESULTS` | `10` | Aggregated results returned to caller |
+| Variable             | Default | Description                           |
+| -------------------- | ------- | ------------------------------------- |
+| `PORT`               | `3000`  | TCP port to listen on                 |
+| `ENGINE_TIMEOUT_MS`  | `8000`  | Per-engine request timeout (ms)       |
+| `RESULTS_PER_ENGINE` | `10`    | Results fetched from each engine      |
+| `MAX_RESULTS`        | `10`    | Aggregated results returned to caller |
 
 Example with custom config:
 
@@ -60,7 +60,7 @@ curl http://localhost:3000/health
 ```
 
 ```json
-{"status": "ok"}
+{ "status": "ok" }
 ```
 
 ### `GET /search?q=<query>`
@@ -88,11 +88,11 @@ curl "http://localhost:3000/search?q=rust"
 
 **Error responses:**
 
-| Case | Status | Body |
-|---|---|---|
-| Missing `q` | 400 | `{"error": "query parameter 'q' is required"}` |
-| Empty `q` | 400 | `{"error": "query parameter 'q' cannot be empty"}` |
-| All engines fail | 503 | `{"error": "all engines failed to respond"}` |
+| Case             | Status | Body                                               |
+| ---------------- | ------ | -------------------------------------------------- |
+| Missing `q`      | 400    | `{"error": "query parameter 'q' is required"}`     |
+| Empty `q`        | 400    | `{"error": "query parameter 'q' cannot be empty"}` |
+| All engines fail | 503    | `{"error": "all engines failed to respond"}`       |
 
 ## Running tests
 
@@ -114,28 +114,7 @@ cargo test -- --ignored test_live
 
 Live tests are marked `#[ignore]` so they don't run in CI by default. Run them manually to verify HTML selectors still work against the real sites.
 
-## Project structure
-
-```
-src/
-├── main.rs           # Entry point — wires engines, state, and router
-├── lib.rs            # Module declarations
-├── config.rs         # AppConfig read from environment variables
-├── error.rs          # EngineError (typed) and AppError (HTTP responses)
-├── models.rs         # SearchResult, AggregatedResult, SearchQuery, SearchResponse
-├── normalizer.rs     # URL normalization for deduplication
-├── aggregator.rs     # Fan-out query and RRF-based aggregation
-├── engines/
-│   ├── mod.rs        # SearchEngine trait, shared HTTP client
-│   ├── duckduckgo.rs # html.duckduckgo.com/html/ scraper
-│   ├── brave.rs      # search.brave.com scraper
-│   └── startpage.rs  # startpage.com scraper
-└── server/
-    ├── mod.rs        # Router setup with CORS and tracing middleware
-    └── handlers.rs   # GET /health and GET /search handlers + tests
-```
-
-## Adding a new engine
+## Adding a new search engine
 
 1. Create `src/engines/<name>.rs`
 2. Define a struct holding `Arc<reqwest::Client>`
@@ -157,4 +136,4 @@ impl SearchEngine for MyEngine {
 }
 ```
 
-4. Add it to `engines/mod.rs` and wire it in `main.rs`
+1. Add it to `engines/mod.rs` and wire it in `main.rs`
