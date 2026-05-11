@@ -22,3 +22,5 @@ urlencoding      = "2"
 [dev-dependencies]
 wiremock         = "0.6"
 tokio-test       = "0.4"
+tower            = { version = "0.5", features = ["util"] }
+http-body-util   = "0.1"
