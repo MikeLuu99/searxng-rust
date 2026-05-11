@@ -13,7 +13,7 @@ A SearXNG-style metadata search engine written in Rust. Fans out queries to mult
 
 ## Requirements
 
-- Rust 1.75+ (uses `impl Trait` in return position for the `SearchEngine` trait)
+- Rust 1.75+
 - Cargo
 
 ## Installation
@@ -27,19 +27,8 @@ cargo build --release
 ## Running
 
 ```bash
-cargo run --release
+cargo run
 ```
-
-The server starts on port 3000 by default. Override with environment variables:
-
-| Variable             | Default | Description                           |
-| -------------------- | ------- | ------------------------------------- |
-| `PORT`               | `3000`  | TCP port to listen on                 |
-| `ENGINE_TIMEOUT_MS`  | `8000`  | Per-engine request timeout (ms)       |
-| `RESULTS_PER_ENGINE` | `10`    | Results fetched from each engine      |
-| `MAX_RESULTS`        | `10`    | Aggregated results returned to caller |
-
-Example with custom config:
 
 ```bash
 PORT=8080 MAX_RESULTS=20 cargo run --release
@@ -94,7 +83,7 @@ curl "http://localhost:3000/search?q=rust"
 | Empty `q`        | 400    | `{"error": "query parameter 'q' cannot be empty"}` |
 | All engines fail | 503    | `{"error": "all engines failed to respond"}`       |
 
-## Running tests
+## Tests
 
 ```bash
 # All unit tests
@@ -153,4 +142,4 @@ impl SearchEngine for MyEngine {
 }
 ```
 
-1. Add it to `engines/mod.rs` and wire it in `main.rs`
+Add it to `engines/mod.rs` and wire it in `main.rs`
