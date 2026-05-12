@@ -7,7 +7,7 @@ description = "A metadata search engine binary and server similar to SEAR-XNG"
 license = "MIT"
 repository = "https://github.com/MikeLuu99/searxng-rust"
 readme = "README.md"
-keywords = ["metadata", "search engine", "scraper", "searxng"]
+keywords = ["metadata", "search", "engine", "scraper", "searxng"]
 categories = ["API bindings", "Algorithms"]
 
 [dependencies]
