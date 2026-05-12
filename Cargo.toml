@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/MikeLuu99/searxng-rust"
 readme = "README.md"
 keywords = ["metadata", "search", "engine", "scraper", "searxng"]
-categories = ["API bindings", "Algorithms"]
+categories = ["api-bindings", "algorithms"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
