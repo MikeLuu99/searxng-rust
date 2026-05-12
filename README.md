@@ -18,6 +18,21 @@ A SearXNG-style metadata search engine written in Rust. Fans out queries to mult
 
 ## Installation
 
+### As a library
+
+```bash
+cargo add metadata-search-engine-rs
+```
+
+Or add manually to `Cargo.toml`:
+
+```toml
+[dependencies]
+metadata-search-engine-rs = "0.1"
+```
+
+### As a server (from source)
+
 ```bash
 git clone https://github.com/MikeLuu99/searxng-rust
 cd metadata-search-engine-rs
@@ -38,6 +53,95 @@ Enable debug logging:
 
 ```bash
 RUST_LOG=debug cargo run
+```
+
+## Examples
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+metadata-search-engine-rs = "0.1"
+tokio = { version = "1", features = ["full"] }
+```
+
+### Query a single engine
+
+```rust
+use std::sync::Arc;
+use metadata_search_engine_rs::engines::{DuckDuckGoEngine, SearchEngine, build_http_client};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let client = Arc::new(build_http_client()?);
+    let engine = DuckDuckGoEngine { client };
+
+    let results = engine.search("rust programming", 5).await?;
+    for r in results {
+        println!("{}\n  {}", r.title, r.url);
+    }
+    Ok(())
+}
+```
+
+### Fan out to all engines and get RRF-ranked results
+
+```rust
+use std::sync::Arc;
+use metadata_search_engine_rs::{
+    aggregator::{aggregate, query_all_engines},
+    engines::{BraveEngine, DuckDuckGoEngine, SearchEngine, StartpageEngine, build_http_client},
+};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let client = Arc::new(build_http_client()?);
+    let engines: Vec<Arc<dyn SearchEngine>> = vec![
+        Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
+        Arc::new(BraveEngine    { client: Arc::clone(&client) }),
+        Arc::new(StartpageEngine { client: Arc::clone(&client) }),
+    ];
+
+    let (successes, failures) = query_all_engines(&engines, "rust programming", 10).await;
+    for (name, err) in &failures {
+        eprintln!("engine {name} failed: {err}");
+    }
+
+    let results = aggregate(successes, 10);
+    for r in &results {
+        println!("[{:.3}] ({}) {}", r.score, r.engines.join(", "), r.title);
+        println!("        {}", r.url);
+    }
+    Ok(())
+}
+```
+
+### Use only specific engines
+
+```rust
+use std::sync::Arc;
+use metadata_search_engine_rs::{
+    aggregator::{aggregate, query_all_engines},
+    engines::{BraveEngine, DuckDuckGoEngine, SearchEngine, build_http_client},
+};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let client = Arc::new(build_http_client()?);
+    let engines: Vec<Arc<dyn SearchEngine>> = vec![
+        Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
+        Arc::new(BraveEngine     { client: Arc::clone(&client) }),
+    ];
+
+    let (successes, _) = query_all_engines(&engines, "tokio async rust", 5).await;
+    for r in aggregate(successes, 5) {
+        println!("{} — {}", r.title, r.url);
+        if let Some(snippet) = r.snippet {
+            println!("  {snippet}");
+        }
+    }
+    Ok(())
+}
 ```
 
 ## API
