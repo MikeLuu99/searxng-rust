@@ -12,6 +12,6 @@ cargo run -p search-tui
 stx
 ```
 
-## Termincal UI
+## Terminal UI
 
 ![stx TUI](assets/tui_screenshots.png)
