@@ -74,7 +74,12 @@ async fn test_health_returns_ok() {
     let router = build_test_router(vec![]);
 
     let response = router
-        .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -88,7 +93,12 @@ async fn test_search_missing_query_returns_400() {
     let router = build_test_router(vec![]);
 
     let response = router
-        .oneshot(Request::builder().uri("/search").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/search")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -136,7 +146,12 @@ async fn test_search_all_engines_fail_returns_503() {
         axum::http::StatusCode::SERVICE_UNAVAILABLE
     );
     let body = json_body(response).await;
-    assert!(body["error"].as_str().unwrap().contains("all engines failed"));
+    assert!(
+        body["error"]
+            .as_str()
+            .unwrap()
+            .contains("all engines failed")
+    );
 }
 
 #[tokio::test]
@@ -153,7 +168,11 @@ async fn test_search_returns_aggregated_results() {
             name: "engine_b",
             results: vec![
                 mock_result("Rust Lang", "https://rust-lang.org", "engine_b"),
-                mock_result("Wikipedia", "https://en.wikipedia.org/wiki/Rust", "engine_b"),
+                mock_result(
+                    "Wikipedia",
+                    "https://en.wikipedia.org/wiki/Rust",
+                    "engine_b",
+                ),
             ],
         }),
     ];

@@ -12,20 +12,33 @@ const DDG_URL: &str = "https://html.duckduckgo.com/html/";
 // Conservative limit so a slow DDG response doesn't block the whole fan-out.
 const TIMEOUT_MS: u64 = 8_000;
 
-pub async fn search(client: &Client, query: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineError> {
+pub async fn search(
+    client: &Client,
+    query: &str,
+    max_results: usize,
+) -> Result<Vec<SearchResult>, EngineError> {
     let response = tokio::time::timeout(
         Duration::from_millis(TIMEOUT_MS),
         client.get(DDG_URL).query(&[("q", query)]).send(),
     )
     .await
     .map_err(|_| EngineError::Timeout { engine: ENGINE })?
-    .map_err(|e| EngineError::Http { engine: ENGINE, source: e })?;
+    .map_err(|e| EngineError::Http {
+        engine: ENGINE,
+        source: e,
+    })?;
 
     if !response.status().is_success() {
-        return Err(EngineError::BadStatus { engine: ENGINE, status: response.status().as_u16() });
+        return Err(EngineError::BadStatus {
+            engine: ENGINE,
+            status: response.status().as_u16(),
+        });
     }
 
-    let body = response.text().await.map_err(|e| EngineError::Http { engine: ENGINE, source: e })?;
+    let body = response.text().await.map_err(|e| EngineError::Http {
+        engine: ENGINE,
+        source: e,
+    })?;
 
     parse(&body, max_results)
 }
@@ -34,25 +47,33 @@ fn parse(html: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineErro
     let document = Html::parse_document(html);
 
     // Each organic result lives in a <div class="result"> — ads use different classes
-    let result_sel  = sel(ENGINE, "div.result")?;
-    let title_sel   = sel(ENGINE, "a.result__a")?;
+    let result_sel = sel(ENGINE, "div.result")?;
+    let title_sel = sel(ENGINE, "a.result__a")?;
     let snippet_sel = sel(ENGINE, "a.result__snippet")?;
 
     let mut results = Vec::new();
 
     for element in document.select(&result_sel) {
-        if results.len() >= max_results { break; }
+        if results.len() >= max_results {
+            break;
+        }
 
-        let Some(title_el) = element.select(&title_sel).next() else { continue };
+        let Some(title_el) = element.select(&title_sel).next() else {
+            continue;
+        };
 
         let title = title_el.text().collect::<String>().trim().to_string();
-        if title.is_empty() { continue; }
+        if title.is_empty() {
+            continue;
+        }
 
         // DDG wraps destination URLs as redirects: /l/?uddg=<encoded-url>&...
         // We extract the real URL from the uddg query parameter.
         let href = title_el.value().attr("href").unwrap_or("");
         let url = extract_destination_url(href).unwrap_or_else(|| href.to_string());
-        if url.is_empty() { continue; }
+        if url.is_empty() {
+            continue;
+        }
 
         let snippet = element
             .select(&snippet_sel)
@@ -60,7 +81,12 @@ fn parse(html: &str, max_results: usize) -> Result<Vec<SearchResult>, EngineErro
             .map(|el| el.text().collect::<String>().trim().to_string())
             .filter(|s| !s.is_empty());
 
-        results.push(SearchResult { title, url, snippet, source_engine: ENGINE.to_string() });
+        results.push(SearchResult {
+            title,
+            url,
+            snippet,
+            source_engine: ENGINE.to_string(),
+        });
     }
 
     Ok(results)
@@ -142,7 +168,9 @@ mod tests {
     #[ignore]
     async fn test_live_search() {
         let client = crate::engines::build_http_client().unwrap();
-        let results = search(&client, "rust programming language", 10).await.unwrap();
+        let results = search(&client, "rust programming language", 10)
+            .await
+            .unwrap();
 
         println!("Got {} results:", results.len());
         for r in &results {

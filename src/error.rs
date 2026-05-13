@@ -16,7 +16,10 @@ pub enum EngineError {
     BadStatus { engine: &'static str, status: u16 },
 
     #[error("engine '{engine}' parse failed: {reason}")]
-    ParseFailed { engine: &'static str, reason: String },
+    ParseFailed {
+        engine: &'static str,
+        reason: String,
+    },
 }
 
 /// Axum handler error — wraps anyhow for flexibility at the HTTP boundary.
@@ -29,11 +32,17 @@ pub struct AppError {
 
 impl AppError {
     pub fn bad_request(msg: impl Into<String>) -> Self {
-        Self { status: axum::http::StatusCode::BAD_REQUEST, message: msg.into() }
+        Self {
+            status: axum::http::StatusCode::BAD_REQUEST,
+            message: msg.into(),
+        }
     }
 
     pub fn service_unavailable(msg: impl Into<String>) -> Self {
-        Self { status: axum::http::StatusCode::SERVICE_UNAVAILABLE, message: msg.into() }
+        Self {
+            status: axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            message: msg.into(),
+        }
     }
 }
 

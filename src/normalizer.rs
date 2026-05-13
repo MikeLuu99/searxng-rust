@@ -3,8 +3,17 @@ use url::Url;
 // Query parameters added by ad/analytics platforms that don't affect page content.
 // Two URLs differing only by these params are the same page for deduplication purposes.
 const TRACKING_PARAMS: &[&str] = &[
-    "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
-    "fbclid", "gclid", "msclkid", "yclid", "ref", "source",
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "fbclid",
+    "gclid",
+    "msclkid",
+    "yclid",
+    "ref",
+    "source",
 ];
 
 // Index filenames that are semantically equivalent to the directory path.
@@ -72,7 +81,11 @@ fn strip_locale_prefix(path: &str) -> &str {
         None => return path,
     };
 
-    if is_locale_segment(segment) { remainder } else { path }
+    if is_locale_segment(segment) {
+        remainder
+    } else {
+        path
+    }
 }
 
 /// Returns true if `s` looks like a BCP 47 locale code used as a path prefix.

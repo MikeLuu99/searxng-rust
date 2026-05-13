@@ -2,7 +2,7 @@ pub mod handlers;
 
 use std::sync::Arc;
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use handlers::AppState;

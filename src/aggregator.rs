@@ -126,8 +126,14 @@ mod tests {
     #[test]
     fn test_rrf_cross_engine_agreement_boosts_score() {
         let engine_results = vec![
-            ("ddg".to_string(), vec![make_result("https://example.com", "ddg", "Example")]),
-            ("brave".to_string(), vec![make_result("https://example.com", "brave", "Example")]),
+            (
+                "ddg".to_string(),
+                vec![make_result("https://example.com", "ddg", "Example")],
+            ),
+            (
+                "brave".to_string(),
+                vec![make_result("https://example.com", "brave", "Example")],
+            ),
         ];
         let results = aggregate(engine_results, 10);
 
@@ -159,8 +165,14 @@ mod tests {
     #[test]
     fn test_deduplication_by_normalized_url() {
         let engine_results = vec![
-            ("ddg".to_string(), vec![make_result("https://example.com/page/", "ddg", "Page")]),
-            ("brave".to_string(), vec![make_result("https://example.com/page", "brave", "Page")]),
+            (
+                "ddg".to_string(),
+                vec![make_result("https://example.com/page/", "ddg", "Page")],
+            ),
+            (
+                "brave".to_string(),
+                vec![make_result("https://example.com/page", "brave", "Page")],
+            ),
         ];
         let results = aggregate(engine_results, 10);
 
@@ -189,7 +201,13 @@ mod tests {
         let engine_results = vec![(
             "ddg".to_string(),
             (1..=10)
-                .map(|i| make_result(&format!("https://example{i}.com"), "ddg", &format!("Result {i}")))
+                .map(|i| {
+                    make_result(
+                        &format!("https://example{i}.com"),
+                        "ddg",
+                        &format!("Result {i}"),
+                    )
+                })
                 .collect(),
         )];
         let results = aggregate(engine_results, 3);
@@ -231,12 +249,19 @@ mod tests {
         let client = Arc::new(crate::engines::build_http_client().unwrap());
 
         let engines: Vec<Arc<dyn SearchEngine>> = vec![
-            Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
-            Arc::new(BraveEngine { client: Arc::clone(&client) }),
-            Arc::new(StartpageEngine { client: Arc::clone(&client) }),
+            Arc::new(DuckDuckGoEngine {
+                client: Arc::clone(&client),
+            }),
+            Arc::new(BraveEngine {
+                client: Arc::clone(&client),
+            }),
+            Arc::new(StartpageEngine {
+                client: Arc::clone(&client),
+            }),
         ];
 
-        let (successes, failures) = query_all_engines(&engines, "rust programming language", 10).await;
+        let (successes, failures) =
+            query_all_engines(&engines, "rust programming language", 10).await;
 
         println!("Engines succeeded: {}", successes.len());
         println!("Engines failed:    {}", failures.len());
@@ -265,6 +290,9 @@ mod tests {
         // At least one result should appear in both engines — the web agrees on something
         let cross_engine = results.iter().filter(|r| r.engines.len() > 1).count();
         println!("\nResults from both engines: {cross_engine}");
-        assert!(cross_engine > 0, "expected at least one result from both engines");
+        assert!(
+            cross_engine > 0,
+            "expected at least one result from both engines"
+        );
     }
 }

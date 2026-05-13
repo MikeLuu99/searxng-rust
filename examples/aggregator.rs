@@ -11,7 +11,9 @@ use metadata_search_engine_rs::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let query = std::env::args().nth(1).unwrap_or_else(|| "rust programming".to_string());
+    let query = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "rust programming".to_string());
     let results_per_engine = 10;
     let max_results = 10;
 
@@ -20,9 +22,15 @@ async fn main() -> anyhow::Result<()> {
     let client = Arc::new(build_http_client()?);
 
     let engines: Vec<Arc<dyn SearchEngine>> = vec![
-        Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
-        Arc::new(BraveEngine { client: Arc::clone(&client) }),
-        Arc::new(StartpageEngine { client: Arc::clone(&client) }),
+        Arc::new(DuckDuckGoEngine {
+            client: Arc::clone(&client),
+        }),
+        Arc::new(BraveEngine {
+            client: Arc::clone(&client),
+        }),
+        Arc::new(StartpageEngine {
+            client: Arc::clone(&client),
+        }),
     ];
 
     let (successes, failures) = query_all_engines(&engines, &query, results_per_engine).await;
@@ -43,7 +51,11 @@ async fn main() -> anyhow::Result<()> {
     println!(
         "Results from {} engine(s): {}\n",
         successes.len(),
-        successes.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", ")
+        successes
+            .iter()
+            .map(|(n, _)| n.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
     );
 
     let results = aggregate(successes, max_results);

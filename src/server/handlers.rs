@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Query, State},
     http::StatusCode,
-    Json,
 };
 use std::sync::Arc;
 
@@ -48,7 +48,9 @@ pub async fn search(
     }
 
     if successes.is_empty() {
-        return Err(AppError::service_unavailable("all engines failed to respond"));
+        return Err(AppError::service_unavailable(
+            "all engines failed to respond",
+        ));
     }
 
     let results = aggregate(successes, state.max_results);
