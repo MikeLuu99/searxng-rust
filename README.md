@@ -209,20 +209,9 @@ Live tests are marked `#[ignore]` so they don't run in CI by default. Run them m
 
 ## Terminal UI
 
-A ratatui-based TUI is available as a separate workspace crate. See [tui/README.md](tui/README.md) for full usage and keybinds.
+A ratatui-based TUI is available as a [crate](https://crates.io/crates/search-tui) to install here. Access the code via [github](https://github.com/MikeLuu99/search-tui)
 
 ![stx TUI](assets/tui_screenshots.png)
-
-```bash
-cargo run -p search-tui
-
-# or install as a global command:
-cargo install --path tui
-stx
-
-# or with an immediate query:
-stx rust vs go
-```
 
 ## Adding a new search engine
 
