@@ -5,7 +5,7 @@ A SearXNG-style metadata search engine written in Rust. Fans out queries to mult
 ## How it works
 
 1. A search request arrives at `GET /search?q=<query>`
-2. The query is sent concurrently to DuckDuckGo, Brave, and Startpage via `reqwest`
+2. The query is sent concurrently to DuckDuckGo, Brave, Startpage, and Yahoo via `reqwest`
 3. Each engine parses the HTML response with `scraper` (CSS selectors over Mozilla's html5ever)
 4. Results are deduplicated by normalized URL (tracking params stripped, locale prefixes removed, query params sorted)
 5. Duplicate URLs are merged and scored with RRF (`score = Σ 1/(60 + rank)` across engines) — pages returned by multiple engines rank higher
@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
 use std::sync::Arc;
 use metadata_search_engine_rs::{
     aggregator::{aggregate, query_all_engines},
-    engines::{BraveEngine, DuckDuckGoEngine, SearchEngine, StartpageEngine, build_http_client},
+    engines::{BraveEngine, DuckDuckGoEngine, SearchEngine, StartpageEngine, YahooEngine, build_http_client},
 };
 
 #[tokio::main]
@@ -98,8 +98,9 @@ async fn main() -> anyhow::Result<()> {
     let client = Arc::new(build_http_client()?);
     let engines: Vec<Arc<dyn SearchEngine>> = vec![
         Arc::new(DuckDuckGoEngine { client: Arc::clone(&client) }),
-        Arc::new(BraveEngine    { client: Arc::clone(&client) }),
+        Arc::new(BraveEngine     { client: Arc::clone(&client) }),
         Arc::new(StartpageEngine { client: Arc::clone(&client) }),
+        Arc::new(YahooEngine     { client: Arc::clone(&client) }),
     ];
 
     let (successes, failures) = query_all_engines(&engines, "rust programming", 10).await;
@@ -170,11 +171,11 @@ curl "http://localhost:3000/search?q=rust"
       "title": "Rust Programming Language",
       "url": "https://rust-lang.org/",
       "snippet": "A language empowering everyone to build reliable and efficient software.",
-      "engines": ["duckduckgo", "brave", "startpage"],
+      "engines": ["duckduckgo", "brave", "startpage", "yahoo"],
       "score": 0.049
     }
   ],
-  "engines_queried": ["duckduckgo", "brave", "startpage"],
+  "engines_queried": ["duckduckgo", "brave", "startpage", "yahoo"],
   "engines_failed": []
 }
 ```
@@ -199,6 +200,7 @@ cargo test aggregator
 cargo test engines::duckduckgo
 cargo test engines::brave
 cargo test engines::startpage
+cargo test engines::yahoo
 cargo test server::handlers
 
 # Live tests (hit real search engines — requires internet)

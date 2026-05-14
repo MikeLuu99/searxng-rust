@@ -1,5 +1,5 @@
 use metadata_search_engine_rs::engines::{
-    BraveEngine, DuckDuckGoEngine, SearchEngine, StartpageEngine, build_http_client,
+    BraveEngine, DuckDuckGoEngine, SearchEngine, StartpageEngine, YahooEngine, build_http_client,
 };
 use std::sync::Arc;
 
@@ -25,6 +25,9 @@ async fn main() -> anyhow::Result<()> {
             client: client.clone(),
         }),
         "startpage" => Box::new(StartpageEngine {
+            client: client.clone(),
+        }),
+        "yahoo" => Box::new(YahooEngine {
             client: client.clone(),
         }),
         _ => {

@@ -1,6 +1,7 @@
 pub mod brave;
 pub mod duckduckgo;
 pub mod startpage;
+pub mod yahoo;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -38,6 +39,10 @@ pub struct BraveEngine {
 }
 
 pub struct StartpageEngine {
+    pub client: Arc<Client>,
+}
+
+pub struct YahooEngine {
     pub client: Arc<Client>,
 }
 
@@ -80,6 +85,20 @@ impl SearchEngine for StartpageEngine {
         max_results: usize,
     ) -> BoxFuture<'a, Result<Vec<SearchResult>, EngineError>> {
         Box::pin(startpage::search(&self.client, query, max_results))
+    }
+}
+
+impl SearchEngine for YahooEngine {
+    fn name(&self) -> &'static str {
+        "yahoo"
+    }
+
+    fn search<'a>(
+        &'a self,
+        query: &'a str,
+        max_results: usize,
+    ) -> BoxFuture<'a, Result<Vec<SearchResult>, EngineError>> {
+        Box::pin(yahoo::search(&self.client, query, max_results))
     }
 }
 
